@@ -40,11 +40,13 @@ namespace RestApp.Vistas
             if (idventa > 0)
             {
                 ventagenerada = "VENTA GENERADA";
+                btnCerrarMesa.IsVisible = true;
                 Mostrardetalleventa();
             }
             else
             {
                 ventagenerada = "VENTA NUEVA";
+                btnCerrarMesa.IsVisible = false;
             }
         }
         private void EliVentasIncompMovil()
@@ -83,6 +85,17 @@ namespace RestApp.Vistas
                 EditarEstadoVentasEspera();
                 EditardetalleventaAenviado();
                 await DisplayAlert("Enviado", "Pedido enviado", "OK");
+                await Navigation.PopAsync();
+            }
+        }
+
+        private async void btnCerrarMesa_Clicked(object sender, EventArgs e)
+        {
+            bool confirmacion = await DisplayAlert("Cerrar mesa", "¿Desea cerrar la mesa?", "Sí", "No");
+            if (confirmacion)
+            {
+                eliminarVenta();
+                LiberarMesa();
                 await Navigation.PopAsync();
             }
         }

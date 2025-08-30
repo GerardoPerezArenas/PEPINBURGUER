@@ -114,6 +114,12 @@
                             Clicked="btnenviar_Clicked"
                             StyleClass="ButtonIniciar"
                             CornerRadius="5"/>
+                    <Button Text="Cerrar mesa"
+                            x:Name="btnCerrarMesa"
+                            IsVisible="False"
+                            Clicked="btnCerrarMesa_Clicked"
+                            StyleClass="ButtonTeclado"
+                            CornerRadius="5"/>
                 </StackLayout>
                 
                 
