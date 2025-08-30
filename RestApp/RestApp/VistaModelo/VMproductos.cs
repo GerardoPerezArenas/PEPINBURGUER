@@ -30,6 +30,7 @@ namespace RestApp.VistaModelo
                     parametros.Idproducto = Convert.ToInt32(rdr["Id_Producto1"]);
                     parametros.Precio = (rdr["Id_Producto1"]).ToString()+"|" + (rdr["Precio_de_venta"]).ToString();
                     parametros.ColorHtml = rdr["ColorHtml"].ToString();
+                    parametros.ImpresoraDestino = rdr.Table.Columns.Contains("ImpresoraDestino") ? rdr["ImpresoraDestino"].ToString() : "";
                     productos.Add(parametros);
                 }
                 return productos;
@@ -65,6 +66,7 @@ namespace RestApp.VistaModelo
                     parametros.Idproducto = Convert.ToInt32(rdr["Id_Producto1"]);
                     parametros.Precio = (rdr["Id_Producto1"]).ToString() + "|" + (rdr["Precio_de_venta"]).ToString();
                     parametros.ColorHtml = rdr["ColorHtml"].ToString();
+                    parametros.ImpresoraDestino = rdr.Table.Columns.Contains("ImpresoraDestino") ? rdr["ImpresoraDestino"].ToString() : "";
                     productos.Add(parametros);
                 }
                 return productos;

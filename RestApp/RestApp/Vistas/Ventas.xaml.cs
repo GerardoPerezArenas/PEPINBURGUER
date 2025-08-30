@@ -1,5 +1,6 @@
 ﻿using RestApp.Modelo;
 using RestApp.VistaModelo;
+using RestApp.Servicio;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,6 +21,14 @@ namespace RestApp.Vistas
             mostrarGrupos();
             EliVentasIncompMovil();
             VerificarVentas();
+            if (Application.Current.Properties.ContainsKey("ImpresoraBebidas"))
+            {
+                txtImpresoraBebidas.Text = Application.Current.Properties["ImpresoraBebidas"].ToString();
+            }
+            if (Application.Current.Properties.ContainsKey("ImpresoraComidas"))
+            {
+                txtImpresoraComidas.Text = Application.Current.Properties["ImpresoraComidas"].ToString();
+            }
         }
         protected override void OnAppearing()
         {
@@ -79,11 +88,63 @@ namespace RestApp.Vistas
         {
             if (total > 0)
             {
+                PrinterService.ImpresoraBebidas = txtImpresoraBebidas.Text;
+                PrinterService.ImpresoraComidas = txtImpresoraComidas.Text;
+                Application.Current.Properties["ImpresoraBebidas"] = PrinterService.ImpresoraBebidas;
+                Application.Current.Properties["ImpresoraComidas"] = PrinterService.ImpresoraComidas;
+                await Application.Current.SavePropertiesAsync();
+                await EnviarAImpresoras();
                 EditarEstadoMesaOcupado();
                 EditarEstadoVentasEspera();
                 EditardetalleventaAenviado();
                 await DisplayAlert("Enviado", "Pedido enviado", "OK");
                 await Navigation.PopAsync();
+            }
+        }
+        private async Task EnviarAImpresoras()
+        {
+            var funciondetalle = new VMdetalleventa();
+            var parametrosDetalle = new Mdetalleventa();
+            parametrosDetalle.idventa = idventa;
+            parametrosDetalle.Idmesa = idmesa;
+            var detalles = funciondetalle.MostrarDetalleVenta(parametrosDetalle);
+            var funcionProductos = new VMproductos();
+            var grupos = new Dictionary<string, List<Mdetalleventa>>();
+            foreach (var det in detalles)
+            {
+                var prod = funcionProductos.buscarProductos(det.Producto).FirstOrDefault();
+                var destino = prod?.ImpresoraDestino ?? string.Empty;
+                if (!grupos.ContainsKey(destino))
+                {
+                    grupos[destino] = new List<Mdetalleventa>();
+                }
+                grupos[destino].Add(det);
+            }
+            var servicio = new PrinterService();
+            foreach (var grupo in grupos)
+            {
+                var sb = new StringBuilder();
+                foreach (var det in grupo.Value)
+                {
+                    sb.AppendLine(det.Producto);
+                }
+                string ip = string.Empty;
+                if (grupo.Key == "BEBIDAS")
+                {
+                    ip = PrinterService.ImpresoraBebidas;
+                }
+                else if (grupo.Key == "COMIDAS")
+                {
+                    ip = PrinterService.ImpresoraComidas;
+                }
+                else
+                {
+                    ip = grupo.Key;
+                }
+                if (!string.IsNullOrEmpty(ip))
+                {
+                    await servicio.SendText(ip, sb.ToString());
+                }
             }
         }
         private void EditardetalleventaAenviado()
