@@ -18,6 +18,10 @@ namespace RestApp.Vistas
         public PedidodeIp()
         {
             InitializeComponent();
+            if (Application.Current.Properties.ContainsKey("server_ip"))
+            {
+                Application.Current.MainPage = new NavigationPage(new Login());
+            }
         }
         string ruta;
         string cadena_de_conexion;
@@ -41,7 +45,7 @@ namespace RestApp.Vistas
         {
             if (Idusuario > 0)
             {
-                crear_archivo();
+                await crear_archivo();
                 await DisplayAlert("!Listo!", "Vuelva a abrir la aplicacion", "OK");
                 System.Diagnostics.Process.GetCurrentProcess().CloseMainWindow();
             }
@@ -50,27 +54,28 @@ namespace RestApp.Vistas
                 await DisplayAlert("Sin conexion", "No se logro conectar al servidor", "OK");
             }
         }
-        private void crear_archivo()
+        private async Task crear_archivo()
         {
+            var nuevaIp = txtconexion.Text;
+            if (Application.Current.Properties.ContainsKey("server_ip") &&
+                Application.Current.Properties["server_ip"].ToString() == nuevaIp)
+            {
+                return;
+            }
+
+            Application.Current.Properties["server_ip"] = nuevaIp;
+            await Application.Current.SavePropertiesAsync();
+
             ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "connection.txt");
-            FileInfo fi = new FileInfo(ruta);
-            StreamWriter sw;
             try
             {
-                if (File.Exists(ruta) == false)
-                {
-                    sw = File.CreateText(ruta);
-                    sw.WriteLine(parte1 + txtconexion.Text + parte2);
-                    sw.Flush();
-                    sw.Close();
-                }
-                else if (File.Exists(ruta) == true)
+                if (File.Exists(ruta))
                 {
                     File.Delete(ruta);
-                    sw = File.CreateText(ruta);
-                    sw.WriteLine(parte1 + txtconexion.Text + parte2);
-                    sw.Flush();
-                    sw.Close();
+                }
+                using (var sw = File.CreateText(ruta))
+                {
+                    sw.WriteLine(parte1 + nuevaIp + parte2);
                 }
             }
             catch (Exception)
