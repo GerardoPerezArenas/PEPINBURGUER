@@ -11,5 +11,6 @@ namespace RestApp.Modelo
         public string Descripcion { get; set; }
         public string Precio { get; set; }
         public string ColorHtml { get; set; }
+        public string ImpresoraDestino { get; set; }
     }
 }

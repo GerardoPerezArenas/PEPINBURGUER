@@ -1,5 +1,6 @@
 ﻿using RestApp.Modelo;
 using RestApp.VistaModelo;
+using RestApp.Servicio;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,6 +10,7 @@ using System.Threading.Tasks;
 using Xamarin.Forms;
 using Xamarin.Forms.Xaml;
 using Rg.Plugins.Popup.Services;
+
 namespace RestApp.Vistas
 {
     [XamlCompilation(XamlCompilationOptions.Compile)]
@@ -20,7 +22,17 @@ namespace RestApp.Vistas
             mostrarGrupos();
             EliVentasIncompMovil();
             VerificarVentas();
+
+            if (Application.Current.Properties.ContainsKey("ImpresoraBebidas"))
+            {
+                txtImpresoraBebidas.Text = Application.Current.Properties["ImpresoraBebidas"].ToString();
+            }
+            if (Application.Current.Properties.ContainsKey("ImpresoraComidas"))
+            {
+                txtImpresoraComidas.Text = Application.Current.Properties["ImpresoraComidas"].ToString();
+            }
         }
+
         protected override void OnAppearing()
         {
             if (estadoAutomatico == true)
@@ -30,7 +42,9 @@ namespace RestApp.Vistas
                 estadoAutomatico = false;
             }
         }
+
         public static bool estadoAutomatico = false;
+
         private void VerificarVentas()
         {
             VMventas funcion = new VMventas();
@@ -49,6 +63,7 @@ namespace RestApp.Vistas
                 btnCerrarMesa.IsVisible = false;
             }
         }
+
         private void EliVentasIncompMovil()
         {
             var funcion = new VMventas();
@@ -56,6 +71,7 @@ namespace RestApp.Vistas
             parametros.Idmesa = idmesa;
             funcion.eliminarVenIncomMovil(parametros);
         }
+
         int idgrupo;
         public static int Idusuario;
         public static int idmesa;
@@ -66,6 +82,7 @@ namespace RestApp.Vistas
         double total = 0;
         int iddetalleventa;
         int contadorDventa = 0;
+
         private void btnBuscar_Clicked(object sender, EventArgs e)
         {
             estadoAutomatico = false;
@@ -81,6 +98,12 @@ namespace RestApp.Vistas
         {
             if (total > 0)
             {
+                PrinterService.ImpresoraBebidas = txtImpresoraBebidas.Text;
+                PrinterService.ImpresoraComidas = txtImpresoraComidas.Text;
+                Application.Current.Properties["ImpresoraBebidas"] = PrinterService.ImpresoraBebidas;
+                Application.Current.Properties["ImpresoraComidas"] = PrinterService.ImpresoraComidas;
+                await Application.Current.SavePropertiesAsync();
+                await EnviarAImpresoras();
                 EditarEstadoMesaOcupado();
                 EditarEstadoVentasEspera();
                 EditardetalleventaAenviado();
@@ -99,6 +122,59 @@ namespace RestApp.Vistas
                 await Navigation.PopAsync();
             }
         }
+
+        private async Task EnviarAImpresoras()
+        {
+            var funciondetalle = new VMdetalleventa();
+            var parametrosDetalle = new Mdetalleventa();
+            parametrosDetalle.idventa = idventa;
+            parametrosDetalle.Idmesa = idmesa;
+            var detalles = funciondetalle.MostrarDetalleVenta(parametrosDetalle);
+
+            var funcionProductos = new VMproductos();
+            var grupos = new Dictionary<string, List<Mdetalleventa>>();
+
+            foreach (var det in detalles)
+            {
+                var prod = funcionProductos.buscarProductos(det.Producto).FirstOrDefault();
+                var destino = prod?.ImpresoraDestino ?? string.Empty;
+                if (!grupos.ContainsKey(destino))
+                {
+                    grupos[destino] = new List<Mdetalleventa>();
+                }
+                grupos[destino].Add(det);
+            }
+
+            var servicio = new PrinterService();
+            foreach (var grupo in grupos)
+            {
+                var sb = new StringBuilder();
+                foreach (var det in grupo.Value)
+                {
+                    sb.AppendLine(det.Producto);
+                }
+
+                string ip = string.Empty;
+                if (grupo.Key == "BEBIDAS")
+                {
+                    ip = PrinterService.ImpresoraBebidas;
+                }
+                else if (grupo.Key == "COMIDAS")
+                {
+                    ip = PrinterService.ImpresoraComidas;
+                }
+                else
+                {
+                    ip = grupo.Key;
+                }
+
+                if (!string.IsNullOrEmpty(ip))
+                {
+                    await servicio.SendText(ip, sb.ToString());
+                }
+            }
+        }
+
         private void EditardetalleventaAenviado()
         {
             var funcionmostrar = new VMdetalleventa();
@@ -106,7 +182,7 @@ namespace RestApp.Vistas
             parametrosmostrar.idventa = idventa;
             parametrosmostrar.Idmesa = idmesa;
             var dt = funcionmostrar.MostrarDetalleVenta(parametrosmostrar);
-            //*****
+
             var funcion = new VMdetalleventa();
             var parametros = new Mdetalleventa();
             foreach (var rdr in dt)
@@ -116,6 +192,7 @@ namespace RestApp.Vistas
                 funcion.editarenviadoDV(parametros);
             }
         }
+
         private void EditarEstadoVentasEspera()
         {
             var funcion = new VMventas();
@@ -123,6 +200,7 @@ namespace RestApp.Vistas
             parametros.Idventa = idventa;
             funcion.EditarEstadoVentasEspera(parametros);
         }
+
         private void EditarEstadoMesaOcupado()
         {
             var funcion = new VMmesas();
@@ -130,19 +208,20 @@ namespace RestApp.Vistas
             parametros.Id_mesa = idmesa;
             funcion.EditarEstadoMesaOcupado(parametros);
         }
+
         private void mostrarGrupos()
         {
             var funcion = new VMgrupos();
             var data = funcion.mostrarGrupos();
             Listagrupos.ItemsSource = data;
         }
+
         private void MostrarProductos()
         {
             var funcion = new VMproductos();
             var data = funcion.MostrarProductos(idgrupo);
             ListaProductos.ItemsSource = data;
         }
-
 
         private void btnGrupo_Clicked(object sender, EventArgs e)
         {
@@ -157,9 +236,9 @@ namespace RestApp.Vistas
             idproducto = Convert.ToInt32(separadas[0]);
             precioventa = Convert.ToDouble(separadas[1]);
 
-
             InsertarVentas();
         }
+
         private void InsertarVentas()
         {
             if (ventagenerada == "VENTA NUEVA")
@@ -177,9 +256,8 @@ namespace RestApp.Vistas
             {
                 insertarDetalleventa();
             }
-
-
         }
+
         private void insertarDetalleventa()
         {
             var funcion = new VMdetalleventa();
@@ -195,6 +273,7 @@ namespace RestApp.Vistas
             funcion.insertarDetalle_venta(parametros);
             Mostrardetalleventa();
         }
+
         private void Mostrardetalleventa()
         {
             var funcion = new VMdetalleventa();
@@ -205,11 +284,7 @@ namespace RestApp.Vistas
             var data = funcion.MostrarDetalleVenta(parametros);
             listaDetalleVenta.ItemsSource = data;
 
-
-
             contadorDventa = data.Count;
-
-
             total = 0;
             foreach (var item in data)
             {
@@ -217,14 +292,15 @@ namespace RestApp.Vistas
             }
             lblTotal.Text = total.ToString();
         }
+
         private void eliminarVenta()
         {
             var funcion = new VMventas();
             var parametros = new Mventas();
             parametros.Idventa = idventa;
             funcion.eliminarVenta(parametros);
-
         }
+
         private void LiberarMesa()
         {
             var funcion = new VMmesas();
@@ -232,11 +308,13 @@ namespace RestApp.Vistas
             parametros.Id_mesa = idmesa;
             funcion.EditarEstadoMesaLibre(parametros);
         }
+
         private void btnBorrarDV1_Invoked(object sender, EventArgs e)
         {
             iddetalleventa = Convert.ToInt32(((SwipeItem)sender).CommandParameter);
             EliminarDetalleventa();
         }
+
         private void EliminarDetalleventa()
         {
             var funcion = new VMdetalleventa();
@@ -251,7 +329,6 @@ namespace RestApp.Vistas
                 LiberarMesa();
                 VerificarVentas();
             }
-
         }
 
         private void btnBorrarDV2_Invoked(object sender, EventArgs e)

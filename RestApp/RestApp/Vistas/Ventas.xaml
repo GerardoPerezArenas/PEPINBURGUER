@@ -24,6 +24,8 @@
                     <Button Text="Buscar..." x:Name="btnBuscar"
                             Clicked="btnBuscar_Clicked"
                             StyleClass="ButtonIniciar"/>
+                    <Entry x:Name="txtImpresoraBebidas" Placeholder="IP bebidas" WidthRequest="150" Margin="10,0,0,0"/>
+                    <Entry x:Name="txtImpresoraComidas" Placeholder="IP comidas" WidthRequest="150" Margin="10,0,0,0"/>
                 </StackLayout>
             <CollectionView Grid.Row="1" BackgroundColor="#12171E"
                            x:Name="listaDetalleVenta"
