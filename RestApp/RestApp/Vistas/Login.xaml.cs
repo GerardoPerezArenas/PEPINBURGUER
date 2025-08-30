@@ -18,14 +18,13 @@ namespace RestApp.Vistas
         public Login()
         {
             InitializeComponent();
-            dibujarUsuarios();
+            _ = dibujarUsuarios();
         }
         public string login;
-        public void dibujarUsuarios()
+        public async Task dibujarUsuarios()
         {
-            DataTable dt = new DataTable();
             VMusuarios funcion = new VMusuarios();
-            funcion.dibujarUsuarios(ref dt);
+            var dt = await funcion.dibujarUsuarios();
             foreach (DataRow rdr in dt.Rows )
             {
                 Label l = new Label();

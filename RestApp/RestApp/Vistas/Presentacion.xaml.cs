@@ -16,30 +16,30 @@ namespace RestApp.Vistas
         public Presentacion()
         {
             InitializeComponent();
-            animacion();
+            _ = animacion();
         }
         int iduser=0;
         private async Task animacion()
         {
             Logo.Opacity = 0;
             await Logo.FadeTo(1, 2000);
-            ProbarConexion();
+            await ProbarConexion();
             //Application.Current.MainPage =new NavigationPage(new Login());
         }
-        private void ProbarConexion()
+        private async Task ProbarConexion()
         {
             try
             {
                 var funcion = new VMusuarios();
-                funcion.ComprobarConexion(ref iduser);
+                iduser = await funcion.ComprobarConexion();
             }
             catch (Exception)
             {
                 iduser = 0;
             }
-            if(iduser >0)
+            if (iduser > 0)
             {
-                Application.Current.MainPage =new NavigationPage( new Login());
+                Application.Current.MainPage = new NavigationPage(new Login());
             }
             else
             {

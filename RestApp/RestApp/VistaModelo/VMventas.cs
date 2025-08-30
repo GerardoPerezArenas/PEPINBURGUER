@@ -6,133 +6,135 @@ using System.Data.SqlClient;
 using RestApp.Modelo;
 using RestApp.Servicio;
 using Xamarin.Forms;
+using System.Threading.Tasks;
 
 namespace RestApp.VistaModelo
 {
   public class VMventas
     {
-        int idmovcajaRemota;
-        private void ObtenerIdCajaremota()
+        private async Task<int> ObtenerIdCajaremota()
         {
             var funcion = new VMmovcaja();
-            funcion.mostrarCajaRemota(ref idmovcajaRemota);
+            return await funcion.mostrarCajaRemota();
         }
-        public void mostrarIdventaMesa(ref int idventa,Mventas parametros)
 
+        public async Task<int> mostrarIdventaMesa(Mventas parametros)
         {
             try
             {
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("mostrarIdventaMesa", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Id_mesa", parametros.Idmesa);
-                idventa =Convert.ToInt32( cmd.ExecuteScalar());
-
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("mostrarIdventaMesa", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Id_mesa", parametros.Idmesa);
+                        var result = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(result);
+                    }
+                }
             }
             catch (Exception)
             {
-
-                idventa = 0;   
+                return 0;
             }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
-            }
-
         }
-        public bool Insertar_ventas(Mventas parametros)
+
+        public async Task<bool> Insertar_ventas(Mventas parametros)
         {
             try
             {
-                ObtenerIdCajaremota();
-
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("Insertar_ventas", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@fecha_venta", DateTime.Now);
-                cmd.Parameters.AddWithValue("@Id_usuario", parametros.Idusuario);
-                cmd.Parameters.AddWithValue("@Nombrellevar", "-");
-                cmd.Parameters.AddWithValue("@Idmovcaja", idmovcajaRemota);
-                cmd.Parameters.AddWithValue("@Id_mesa", parametros.Idmesa);
-                cmd.Parameters.AddWithValue("@Numero_personas", 1);
-                cmd.ExecuteNonQuery();
+                var idmovcajaRemota = await ObtenerIdCajaremota();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("Insertar_ventas", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@fecha_venta", DateTime.Now);
+                        cmd.Parameters.AddWithValue("@Id_usuario", parametros.Idusuario);
+                        cmd.Parameters.AddWithValue("@Nombrellevar", "-");
+                        cmd.Parameters.AddWithValue("@Idmovcaja", idmovcajaRemota);
+                        cmd.Parameters.AddWithValue("@Id_mesa", parametros.Idmesa);
+                        cmd.Parameters.AddWithValue("@Numero_personas", 1);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "OK");
                 return false;
             }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
-            }
         }
-        public bool eliminarVenIncomMovil(Mventas parametros)
+
+        public async Task<bool> eliminarVenIncomMovil(Mventas parametros)
         {
             try
             {
-           
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("eliminarVenIncomMovil", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Idmesa", parametros.Idmesa);
-                cmd.ExecuteNonQuery();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("eliminarVenIncomMovil", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Idmesa", parametros.Idmesa);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
                 return false;
             }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
-            }
         }
-        public bool eliminarVenta(Mventas parametros)
+
+        public async Task<bool> eliminarVenta(Mventas parametros)
         {
             try
             {
-
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("eliminarVenta", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Idventa", parametros.Idventa);
-                cmd.ExecuteNonQuery();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("eliminarVenta", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Idventa", parametros.Idventa);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
                 return false;
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
             }
         }
 
-        public bool EditarEstadoVentasEspera(Mventas parametros)
+        public async Task<bool> EditarEstadoVentasEspera(Mventas parametros)
         {
             try
             {
-
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("EditarEstadoVentasEspera", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@idventa", parametros.Idventa);
-                cmd.ExecuteNonQuery();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("EditarEstadoVentasEspera", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@idventa", parametros.Idventa);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
                 return false;
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
             }
         }
     }

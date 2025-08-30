@@ -6,23 +6,28 @@ using System.Data.SqlClient;
 using Xamarin.Forms;
 using RestApp.Modelo;
 using RestApp.Servicio;
+using System.Threading.Tasks;
 namespace RestApp.VistaModelo
 {
    public class VMproductos
     {
-        public List<Mproductos> MostrarProductos(int Idgrupo)
+        public async Task<List<Mproductos>> MostrarProductos(int Idgrupo)
         {
             var productos = new List<Mproductos>();
             try
             {
-                DataTable dt = new DataTable();
-                CONEXIONMAESTRA.abrir();
-                SqlDataAdapter da = new SqlDataAdapter("mostrar_Productos_por_grupo", CONEXIONMAESTRA.conectar);
-                da.SelectCommand.CommandType = CommandType.StoredProcedure;
-                da.SelectCommand.Parameters.AddWithValue("@id_grupo", Idgrupo);
-                da.SelectCommand.Parameters.AddWithValue("@buscador", "");
-
-                da.Fill(dt);
+                var dt = new DataTable();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var da = new SqlDataAdapter("mostrar_Productos_por_grupo", conn))
+                    {
+                        da.SelectCommand.CommandType = CommandType.StoredProcedure;
+                        da.SelectCommand.Parameters.AddWithValue("@id_grupo", Idgrupo);
+                        da.SelectCommand.Parameters.AddWithValue("@buscador", "");
+                        da.Fill(dt);
+                    }
+                }
                 foreach (DataRow rdr in dt.Rows)
                 {
                     var parametros = new Mproductos();
@@ -37,28 +42,27 @@ namespace RestApp.VistaModelo
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
-
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
             }
             return null;
         }
-        public List<Mproductos> buscarProductos(string buscador)
+
+        public async Task<List<Mproductos>> buscarProductos(string buscador)
         {
             var productos = new List<Mproductos>();
             try
             {
-                DataTable dt = new DataTable();
-                CONEXIONMAESTRA.abrir();
-                SqlDataAdapter da = new SqlDataAdapter("buscarProductos", CONEXIONMAESTRA.conectar);
-                da.SelectCommand.CommandType = CommandType.StoredProcedure;
-                da.SelectCommand.Parameters.AddWithValue("@buscador", buscador);
-      
-
-                da.Fill(dt);
+                var dt = new DataTable();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var da = new SqlDataAdapter("buscarProductos", conn))
+                    {
+                        da.SelectCommand.CommandType = CommandType.StoredProcedure;
+                        da.SelectCommand.Parameters.AddWithValue("@buscador", buscador);
+                        da.Fill(dt);
+                    }
+                }
                 foreach (DataRow rdr in dt.Rows)
                 {
                     var parametros = new Mproductos();
@@ -73,12 +77,7 @@ namespace RestApp.VistaModelo
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
-
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
             }
             return null;
         }

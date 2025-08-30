@@ -116,19 +116,19 @@ namespace RestApp.Vistas
 
         }
 
-        private void txtContraseña_TextChanged(object sender, TextChangedEventArgs e)
+        private async void txtContraseña_TextChanged(object sender, TextChangedEventArgs e)
         {
-            validarContraseña();
+            await validarContraseña();
         }
-        private void validarContraseña()
+        private async Task validarContraseña()
         {
             Musuarios parametros = new Musuarios();
             VMusuarios funcion = new VMusuarios();
-            parametros.Password =Bases.Encriptar(txtContraseña.Text);
+            parametros.Password = Bases.Encriptar(txtContraseña.Text);
             parametros.Login = login;
-            funcion.validarUsuario(parametros, ref idusuario);
+            idusuario = await funcion.validarUsuario(parametros);
 
-            if (idusuario >0)
+            if (idusuario > 0)
             {
                 Mesas.idusuario = idusuario;
                 Application.Current.MainPage = new NavigationPage(new Mesas());

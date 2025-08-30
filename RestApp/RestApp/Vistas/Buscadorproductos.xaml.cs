@@ -20,17 +20,17 @@ namespace RestApp.Vistas
         }
         int idproducto;
         double precioventa;
-        private void BuscarProductos()
+        private async Task BuscarProductos()
         {
             var funcion = new VMproductos();
-            var data = funcion.buscarProductos(txtbuscar.Text);
+            var data = await funcion.buscarProductos(txtbuscar.Text);
             ListaProductos.ItemsSource = data;
 
         }
 
-        private void txtbuscar_TextChanged(object sender, TextChangedEventArgs e)
+        private async void txtbuscar_TextChanged(object sender, TextChangedEventArgs e)
         {
-            BuscarProductos();
+            await BuscarProductos();
         }
 
         private void btnproducto_Clicked(object sender, EventArgs e)

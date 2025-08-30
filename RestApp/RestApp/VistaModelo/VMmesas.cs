@@ -7,72 +7,78 @@ using System.Data.SqlClient;
 using System.Data;
 using RestApp.Servicio;
 using RestApp.Modelo;
+using System.Threading.Tasks;
 
 namespace RestApp.VistaModelo
 {
     public class VMmesas
     {
-        public void dibujarMesasPorSalon(Msalon parametros,ref DataTable dt)
+        public async Task<DataTable> dibujarMesasPorSalon(Msalon parametros)
         {
-			try
-			{
-                CONEXIONMAESTRA.abrir();
-                SqlDataAdapter da = new SqlDataAdapter("mostrar_mesas_por_salon_ventas", CONEXIONMAESTRA.conectar);
-                da.SelectCommand.CommandType = CommandType.StoredProcedure;
-                da.SelectCommand.Parameters.AddWithValue("@id_salon", parametros.Id_salon);
-                da.Fill(dt);
-
+            var dt = new DataTable();
+            try
+            {
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var da = new SqlDataAdapter("mostrar_mesas_por_salon_ventas", conn))
+                    {
+                        da.SelectCommand.CommandType = CommandType.StoredProcedure;
+                        da.SelectCommand.Parameters.AddWithValue("@id_salon", parametros.Id_salon);
+                        da.Fill(dt);
+                    }
+                }
             }
             catch (Exception ex)
-			{
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "Ok");
-
-            }
-            finally
             {
-                CONEXIONMAESTRA.cerrar();
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "Ok");
             }
+            return dt;
         }
-        public bool EditarEstadoMesaOcupado(Mmesas parametros)
+
+        public async Task<bool> EditarEstadoMesaOcupado(Mmesas parametros)
         {
             try
             {
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("EditarEstadoMesaOcupado", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Idmesa", parametros.Id_mesa);
-                cmd.ExecuteNonQuery();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("EditarEstadoMesaOcupado", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Idmesa", parametros.Id_mesa);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
                 return false;
             }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
-            }
         }
-        public bool EditarEstadoMesaLibre(Mmesas parametros)
+
+        public async Task<bool> EditarEstadoMesaLibre(Mmesas parametros)
         {
             try
             {
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("EditarEstadoMesaLibre", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@Idmesa", parametros.Id_mesa);
-                cmd.ExecuteNonQuery();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("EditarEstadoMesaLibre", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@Idmesa", parametros.Id_mesa);
+                        await cmd.ExecuteNonQueryAsync();
+                    }
+                }
                 return true;
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "OK");
                 return false;
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
             }
         }
 
