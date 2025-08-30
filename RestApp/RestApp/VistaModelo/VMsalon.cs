@@ -5,28 +5,31 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Text;
 using Xamarin.Forms;
+using System.Threading.Tasks;
 
 namespace RestApp.VistaModelo
 {
    public  class VMsalon
     {
-        public void dibujarsalones (ref DataTable dt)
+        public async Task<DataTable> dibujarsalones()
         {
-			try
-			{
-                CONEXIONMAESTRA.abrir();
-                SqlDataAdapter da = new SqlDataAdapter("Select * from SALON Where Estado = 'ACTIVO'", CONEXIONMAESTRA.conectar);
-                da.Fill(dt);
-            }
-			catch (Exception ex)
-			{
-                Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "Ok");
-
-            }
-            finally
+            var dt = new DataTable();
+            try
             {
-                CONEXIONMAESTRA.cerrar();
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var da = new SqlDataAdapter("Select * from SALON Where Estado = 'ACTIVO'", conn))
+                    {
+                        da.Fill(dt);
+                    }
+                }
             }
+            catch (Exception ex)
+            {
+                await Application.Current.MainPage.DisplayAlert("Error", ex.StackTrace, "Ok");
+            }
+            return dt;
         }
     }
 }

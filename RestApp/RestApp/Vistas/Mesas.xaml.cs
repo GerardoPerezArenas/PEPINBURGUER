@@ -18,21 +18,20 @@ namespace RestApp.Vistas
         public Mesas()
         {
             InitializeComponent();
-            dibujarSalones();
-           
+            _ = dibujarSalones();
+
         }
         int idsalon=0;
         public static int idusuario;
         int idmesa;
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
-            dibujarMesasPorSalon();
+            await dibujarMesasPorSalon();
         }
-        public void dibujarSalones()
+        public async Task dibujarSalones()
         {
-            DataTable dt = new DataTable();
             VMsalon funcion = new VMsalon();
-            funcion.dibujarsalones(ref dt);
+            var dt = await funcion.dibujarsalones();
             foreach (DataRow rdr in dt.Rows)
             {
                 Button b = new Button();
@@ -50,19 +49,18 @@ namespace RestApp.Vistas
             }
         }
         
-        private void B_Clicked(object sender, EventArgs e)
+        private async void B_Clicked(object sender, EventArgs e)
         {
             idsalon = Convert.ToInt32(((Button)sender).CommandParameter);
-            dibujarMesasPorSalon();
+            await dibujarMesasPorSalon();
         }
-        public void dibujarMesasPorSalon()
+        public async Task dibujarMesasPorSalon()
         {
             PanelMesas.Children.Clear();
-            DataTable dt = new DataTable();
             Msalon parametros = new Msalon();
             VMmesas funcion = new VMmesas();
             parametros.Id_salon = idsalon;
-            funcion.dibujarMesasPorSalon(parametros, ref dt);
+            DataTable dt = await funcion.dibujarMesasPorSalon(parametros);
 
             foreach (DataRow rdr in dt.Rows)
             {

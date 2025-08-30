@@ -29,21 +29,9 @@ namespace RestApp.Servicio
                 return string.Empty;
             }
         }
-        public static SqlConnection conectar = new SqlConnection(conexion);
-
-        public static void abrir()
+        public static SqlConnection GetConnection()
         {
-            if (conectar.State == ConnectionState.Closed)
-            {
-                conectar.Open();
-            }
-        }
-        public static void cerrar()
-        {
-            if (conectar.State == ConnectionState.Open)
-            {
-                conectar.Close();
-            }
+            return new SqlConnection(conexion);
         }
     }
 }

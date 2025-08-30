@@ -9,6 +9,7 @@ namespace RestApp.Modelo
         public int Iddetalleventa { get; set; }
         public int Idmesa { get; set; }
         public string Producto { get; set; }
+        public string ImpresoraDestino { get; set; }
         public double Importe { get; set; }
         public double Total { get; set; }
 

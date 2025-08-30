@@ -7,72 +7,76 @@ using System.Data.SqlClient;
 using System.IO;
 using System.Text;
 using Xamarin.Forms;
+using System.Threading.Tasks;
 
 namespace RestApp.VistaModelo
 {
     public class VMusuarios
     {
-        public void dibujarUsuarios(ref DataTable dt)
+        public async Task<DataTable> dibujarUsuarios()
         {
+            var dt = new DataTable();
             try
             {
-                CONEXIONMAESTRA.abrir();
-                SqlDataAdapter da = new SqlDataAdapter("Select * from Usuarios where Estado='ACTIVO'", CONEXIONMAESTRA.conectar);
-                da.Fill(dt);
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var da = new SqlDataAdapter("Select * from Usuarios where Estado='ACTIVO'", conn))
+                    {
+                        da.Fill(dt);
+                    }
+                }
             }
             catch (Exception ex)
             {
-                Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
+                await Application.Current.MainPage.DisplayAlert("Error", ex.Message, "Ok");
             }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
-            }
+            return dt;
         }
-        public void validarUsuario(Musuarios parametros, ref int id)
+
+        public async Task<int> validarUsuario(Musuarios parametros)
         {
             try
             {
-                CONEXIONMAESTRA.abrir();
-                SqlCommand cmd = new SqlCommand("validarUsuario", CONEXIONMAESTRA.conectar);
-                cmd.CommandType = CommandType.StoredProcedure;
-                cmd.Parameters.AddWithValue("@password", parametros.Password);
-                cmd.Parameters.AddWithValue("@login", parametros.Login);
-                id = Convert.ToInt32(cmd.ExecuteScalar());
-
-
+                using (var conn = CONEXIONMAESTRA.GetConnection())
+                {
+                    await conn.OpenAsync();
+                    using (var cmd = new SqlCommand("validarUsuario", conn))
+                    {
+                        cmd.CommandType = CommandType.StoredProcedure;
+                        cmd.Parameters.AddWithValue("@password", parametros.Password);
+                        cmd.Parameters.AddWithValue("@login", parametros.Login);
+                        var result = await cmd.ExecuteScalarAsync();
+                        return Convert.ToInt32(result);
+                    }
+                }
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                id = 0;
-
-            }
-            finally
-            {
-                CONEXIONMAESTRA.cerrar();
+                return 0;
             }
         }
-        public void ComprobarConexion(ref int Id)
+
+        public async Task<int> ComprobarConexion()
         {
             try
             {
                 string ruta = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "connection.txt");
                 string text = File.ReadAllText(ruta);
-                string conexion = text;
-                SqlConnection conectar = new SqlConnection(conexion);
-
-                conectar.Open();
-                SqlCommand da = new SqlCommand("Select Top 1 IdUsuario from Usuarios", conectar);
-                Id = Convert.ToInt32(da.ExecuteScalar());
-                conectar.Close();
+                using (var conectar = new SqlConnection(text))
+                {
+                    await conectar.OpenAsync();
+                    using (var da = new SqlCommand("Select Top 1 IdUsuario from Usuarios", conectar))
+                    {
+                        var result = await da.ExecuteScalarAsync();
+                        return Convert.ToInt32(result);
+                    }
+                }
             }
             catch (Exception)
             {
-                Id = 0;
-
-
+                return 0;
             }
-            
         }
     }
 }

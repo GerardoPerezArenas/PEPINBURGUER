@@ -19,9 +19,9 @@ namespace RestApp.Vistas
         public Ventas()
         {
             InitializeComponent();
-            mostrarGrupos();
-            EliVentasIncompMovil();
-            VerificarVentas();
+            _ = mostrarGrupos();
+            _ = EliVentasIncompMovil();
+            _ = VerificarVentas();
 
             if (Application.Current.Properties.ContainsKey("ImpresoraBebidas"))
             {
@@ -33,29 +33,29 @@ namespace RestApp.Vistas
             }
         }
 
-        protected override void OnAppearing()
+        protected override async void OnAppearing()
         {
             if (estadoAutomatico == true)
             {
-                InsertarVentas();
-                Mostrardetalleventa();
+                await InsertarVentas();
+                await Mostrardetalleventa();
                 estadoAutomatico = false;
             }
         }
 
         public static bool estadoAutomatico = false;
 
-        private void VerificarVentas()
+        private async Task VerificarVentas()
         {
-            VMventas funcion = new VMventas();
-            Mventas parametros = new Mventas();
+            var funcion = new VMventas();
+            var parametros = new Mventas();
             parametros.Idmesa = idmesa;
-            funcion.mostrarIdventaMesa(ref idventa, parametros);
+            idventa = await funcion.mostrarIdventaMesa(parametros);
             if (idventa > 0)
             {
                 ventagenerada = "VENTA GENERADA";
                 btnCerrarMesa.IsVisible = true;
-                Mostrardetalleventa();
+                await Mostrardetalleventa();
             }
             else
             {
@@ -64,12 +64,12 @@ namespace RestApp.Vistas
             }
         }
 
-        private void EliVentasIncompMovil()
+        private async Task EliVentasIncompMovil()
         {
             var funcion = new VMventas();
             var parametros = new Mventas();
             parametros.Idmesa = idmesa;
-            funcion.eliminarVenIncomMovil(parametros);
+            await funcion.eliminarVenIncomMovil(parametros);
         }
 
         int idgrupo;
@@ -103,12 +103,18 @@ namespace RestApp.Vistas
                 Application.Current.Properties["ImpresoraBebidas"] = PrinterService.ImpresoraBebidas;
                 Application.Current.Properties["ImpresoraComidas"] = PrinterService.ImpresoraComidas;
                 await Application.Current.SavePropertiesAsync();
-                await EnviarAImpresoras();
-                EditarEstadoMesaOcupado();
-                EditarEstadoVentasEspera();
-                EditardetalleventaAenviado();
-                await DisplayAlert("Enviado", "Pedido enviado", "OK");
-                await Navigation.PopAsync();
+                bool enviado = await EnviarAImpresoras();
+                if (enviado)
+                {
+                    await EditarEstadoVentasEspera();
+                    await EditardetalleventaAenviado();
+                    await DisplayAlert("Enviado", "Pedido enviado", "OK");
+                    await Navigation.PopAsync();
+                }
+                else
+                {
+                    await DisplayAlert("Error", "No se pudo enviar el pedido", "OK");
+                }
             }
         }
 
@@ -117,27 +123,25 @@ namespace RestApp.Vistas
             bool confirmacion = await DisplayAlert("Cerrar mesa", "¿Desea cerrar la mesa?", "Sí", "No");
             if (confirmacion)
             {
-                eliminarVenta();
-                LiberarMesa();
+                await eliminarVenta();
+                await LiberarMesa();
                 await Navigation.PopAsync();
             }
         }
 
-        private async Task EnviarAImpresoras()
+        private async Task<bool> EnviarAImpresoras()
         {
             var funciondetalle = new VMdetalleventa();
             var parametrosDetalle = new Mdetalleventa();
             parametrosDetalle.idventa = idventa;
             parametrosDetalle.Idmesa = idmesa;
-            var detalles = funciondetalle.MostrarDetalleVenta(parametrosDetalle);
+            var detalles = await funciondetalle.MostrarDetalleVenta(parametrosDetalle);
 
-            var funcionProductos = new VMproductos();
             var grupos = new Dictionary<string, List<Mdetalleventa>>();
 
             foreach (var det in detalles)
             {
-                var prod = funcionProductos.buscarProductos(det.Producto).FirstOrDefault();
-                var destino = prod?.ImpresoraDestino ?? string.Empty;
+                var destino = det.ImpresoraDestino ?? string.Empty;
                 if (!grupos.ContainsKey(destino))
                 {
                     grupos[destino] = new List<Mdetalleventa>();
@@ -170,18 +174,23 @@ namespace RestApp.Vistas
 
                 if (!string.IsNullOrEmpty(ip))
                 {
-                    await servicio.SendText(ip, sb.ToString());
+                    var ok = await servicio.SendText(ip, sb.ToString());
+                    if (!ok)
+                    {
+                        return false;
+                    }
                 }
             }
+            return true;
         }
 
-        private void EditardetalleventaAenviado()
+        private async Task EditardetalleventaAenviado()
         {
             var funcionmostrar = new VMdetalleventa();
             var parametrosmostrar = new Mdetalleventa();
             parametrosmostrar.idventa = idventa;
             parametrosmostrar.Idmesa = idmesa;
-            var dt = funcionmostrar.MostrarDetalleVenta(parametrosmostrar);
+            var dt = await funcionmostrar.MostrarDetalleVenta(parametrosmostrar);
 
             var funcion = new VMdetalleventa();
             var parametros = new Mdetalleventa();
@@ -189,57 +198,57 @@ namespace RestApp.Vistas
             {
                 iddetalleventa = Convert.ToInt32(rdr.Iddetalleventa);
                 parametros.Iddetalleventa = iddetalleventa;
-                funcion.editarenviadoDV(parametros);
+                await funcion.editarenviadoDV(parametros);
             }
         }
 
-        private void EditarEstadoVentasEspera()
+        private async Task EditarEstadoVentasEspera()
         {
             var funcion = new VMventas();
             var parametros = new Mventas();
             parametros.Idventa = idventa;
-            funcion.EditarEstadoVentasEspera(parametros);
+            await funcion.EditarEstadoVentasEspera(parametros);
         }
 
-        private void EditarEstadoMesaOcupado()
+        private async Task EditarEstadoMesaOcupado()
         {
             var funcion = new VMmesas();
             var parametros = new Mmesas();
             parametros.Id_mesa = idmesa;
-            funcion.EditarEstadoMesaOcupado(parametros);
+            await funcion.EditarEstadoMesaOcupado(parametros);
         }
 
-        private void mostrarGrupos()
+        private async Task mostrarGrupos()
         {
             var funcion = new VMgrupos();
-            var data = funcion.mostrarGrupos();
+            var data = await funcion.mostrarGrupos();
             Listagrupos.ItemsSource = data;
         }
 
-        private void MostrarProductos()
+        private async Task MostrarProductos()
         {
             var funcion = new VMproductos();
-            var data = funcion.MostrarProductos(idgrupo);
+            var data = await funcion.MostrarProductos(idgrupo);
             ListaProductos.ItemsSource = data;
         }
 
-        private void btnGrupo_Clicked(object sender, EventArgs e)
+        private async void btnGrupo_Clicked(object sender, EventArgs e)
         {
             idgrupo = Convert.ToInt32(((Button)sender).CommandParameter);
-            MostrarProductos();
+            await MostrarProductos();
         }
 
-        private void btnproducto_Clicked(object sender, EventArgs e)
+        private async void btnproducto_Clicked(object sender, EventArgs e)
         {
             string cadena = (((Button)sender).CommandParameter).ToString();
             string[] separadas = cadena.Split('|');
             idproducto = Convert.ToInt32(separadas[0]);
             precioventa = Convert.ToDouble(separadas[1]);
 
-            InsertarVentas();
+            await InsertarVentas();
         }
 
-        private void InsertarVentas()
+        private async Task InsertarVentas()
         {
             if (ventagenerada == "VENTA NUEVA")
             {
@@ -247,18 +256,19 @@ namespace RestApp.Vistas
                 var parametros = new Mventas();
                 parametros.Idusuario = Idusuario;
                 parametros.Idmesa = idmesa;
-                if (funcion.Insertar_ventas(parametros) == true)
+                if (await funcion.Insertar_ventas(parametros) == true)
                 {
-                    VerificarVentas();
+                    await EditarEstadoMesaOcupado();
+                    await VerificarVentas();
                 }
             }
             if (ventagenerada == "VENTA GENERADA")
             {
-                insertarDetalleventa();
+                await insertarDetalleventa();
             }
         }
 
-        private void insertarDetalleventa()
+        private async Task insertarDetalleventa()
         {
             var funcion = new VMdetalleventa();
             var parametros = new Mdetalleventa();
@@ -266,22 +276,22 @@ namespace RestApp.Vistas
             parametros.Id_producto = idproducto;
             parametros.cantidad = 1;
             parametros.preciounitario = precioventa;
-            parametros.Estado = "ENVIADO";
+            parametros.Estado = "PENDIENTE";
             parametros.Costo = 0;
             parametros.Estado_de_pago = "DEBE";
             parametros.Donde_se_consumira = "LOCAL";
-            funcion.insertarDetalle_venta(parametros);
-            Mostrardetalleventa();
+            await funcion.insertarDetalle_venta(parametros);
+            await Mostrardetalleventa();
         }
 
-        private void Mostrardetalleventa()
+        private async Task Mostrardetalleventa()
         {
             var funcion = new VMdetalleventa();
             var parametros = new Mdetalleventa();
 
             parametros.idventa = idventa;
             parametros.Idmesa = idmesa;
-            var data = funcion.MostrarDetalleVenta(parametros);
+            var data = await funcion.MostrarDetalleVenta(parametros);
             listaDetalleVenta.ItemsSource = data;
 
             contadorDventa = data.Count;
@@ -293,48 +303,48 @@ namespace RestApp.Vistas
             lblTotal.Text = total.ToString();
         }
 
-        private void eliminarVenta()
+        private async Task eliminarVenta()
         {
             var funcion = new VMventas();
             var parametros = new Mventas();
             parametros.Idventa = idventa;
-            funcion.eliminarVenta(parametros);
+            await funcion.eliminarVenta(parametros);
         }
 
-        private void LiberarMesa()
+        private async Task LiberarMesa()
         {
             var funcion = new VMmesas();
             var parametros = new Mmesas();
             parametros.Id_mesa = idmesa;
-            funcion.EditarEstadoMesaLibre(parametros);
+            await funcion.EditarEstadoMesaLibre(parametros);
         }
 
-        private void btnBorrarDV1_Invoked(object sender, EventArgs e)
+        private async void btnBorrarDV1_Invoked(object sender, EventArgs e)
         {
             iddetalleventa = Convert.ToInt32(((SwipeItem)sender).CommandParameter);
-            EliminarDetalleventa();
+            await EliminarDetalleventa();
         }
 
-        private void EliminarDetalleventa()
+        private async Task EliminarDetalleventa()
         {
             var funcion = new VMdetalleventa();
             var parametros = new Mdetalleventa();
             parametros.Iddetalleventa = iddetalleventa;
-            funcion.eliminarDetalleventa(parametros);
-            Mostrardetalleventa();
+            await funcion.eliminarDetalleventa(parametros);
+            await Mostrardetalleventa();
 
             if (contadorDventa == 0)
             {
-                eliminarVenta();
-                LiberarMesa();
-                VerificarVentas();
+                await eliminarVenta();
+                await LiberarMesa();
+                await VerificarVentas();
             }
         }
 
-        private void btnBorrarDV2_Invoked(object sender, EventArgs e)
+        private async void btnBorrarDV2_Invoked(object sender, EventArgs e)
         {
             iddetalleventa = Convert.ToInt32(((SwipeItem)sender).CommandParameter);
-            EliminarDetalleventa();
+            await EliminarDetalleventa();
         }
     }
 }
